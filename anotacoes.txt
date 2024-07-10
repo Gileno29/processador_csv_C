@@ -1,0 +1,5 @@
+copilar arquivos
+gcc -c libcsv.c -o libcsv.o
+gcc -c main.c -o main.o
+
+gcc libcsv.o  main.o -o programa
