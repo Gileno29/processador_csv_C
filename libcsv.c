@@ -15,7 +15,7 @@ typedef struct {
 void parseFilters(const char *rowFilterDefinitions, Filter *filters, int *filterCount);
 int parseSelectedColumns(const char *selectedColumns, char **columns);
 void filterAndPrintCsv(char *csv, char **selectedColumns, int selectedColumnCount, Filter *filters, int filterCount);
-int applyFilter(char **row, Filter *filters, int filterCount);
+int applyFilter(char **row, Filter *filters, int filterCount, char ** headers, int headerCount);
 int compare(const char *a, const char *b, char comparator);
 
 void processCsv(const char csv[], const char selectedColumns[], const char rowFilterDefinitions[]) {
@@ -116,20 +116,37 @@ int parseSelectedColumns(const char *selectedColumns, char **columns) {
 
 
 
-int applyFilter(char **row, Filter *filters, int filterCount) {
-    
+int applyFilter(char **row, Filter *filters, int filterCount, char **headers, int headerCount) {
     for (int i = 0; i < filterCount; i++) {
-        int columnIndex = atoi(filters[i].header + strlen("header")) - 1;
-        
-        if (columnIndex < 0 || columnIndex >= MAX_COLUMNS || row[columnIndex] == NULL) {
-            fprintf(stderr, "Error: invalid column index %d or NULL value in row\n", columnIndex);
+        int columnIndex = -1;
+
+      
+        // Procurar o nome da coluna literal nos cabeçalhos
+      //  printf("\n################## antes do headercount ###########");
+        for (int j = 0; j < headerCount; j++) {
+            //printf("\nComparando header: '%s' com filtro: '%s'", headers[j], filters[i].header);
+            if (strcmp(headers[j], filters[i].header) == 0) {
+                columnIndex = j;
+                break;
+            }
+            
+        }
+
+       // printf("\nFiltro %d: header='%s', comparator='%c', value='%s', columnIndex=%d", i, filters[i].header, filters[i].comparator, filters[i].value, columnIndex);
+
+        if (columnIndex < 0 || columnIndex >= MAX_COLUMNS) {
+            fprintf(stderr, "Error: invalid column index %d\n", columnIndex);
             return 0;
         }
 
+        if (row[columnIndex] == NULL) {
+            fprintf(stderr, "Error: NULL value in row at column index %d\n", columnIndex);
+            return 0;
+        }
+
+        //printf("\nComparando valor: '%s' com filtro valor: '%s' usando comparator '%c'", row[columnIndex], filters[i].value, filters[i].comparator);
         if (!compare(row[columnIndex], filters[i].value, filters[i].comparator)) {
             return 0;
-        }else{
-            return 1;
         }
     }
     return 1;
@@ -137,7 +154,7 @@ int applyFilter(char **row, Filter *filters, int filterCount) {
 
 /*  filtra e  printa no stdout */
 void filterAndPrintCsv(char *csv, char **selectedColumns, int selectedColumnCount, Filter *filters, int filterCount) {
-    char *lines[MAX_LINE_LENGTH];
+char *lines[MAX_LINE_LENGTH];
     int lineCount = 0;
 
     char *line = strtok(csv, "\n");
@@ -147,28 +164,32 @@ void filterAndPrintCsv(char *csv, char **selectedColumns, int selectedColumnCoun
     }
 
     char *headers[MAX_COLUMNS];
-    int columnCount = 0;
+    int headerCount = 0; // Inicializar a contagem de colunas
     line = lines[0];
     char *header = strtok(line, ",");
     while (header != NULL) {
-        headers[columnCount++] = header;
+        headers[headerCount++] = header; // Atualizar a contagem de colunas
         header = strtok(NULL, ",");
     }
 
     int selectedIndices[MAX_COLUMNS];
-    if(selectedColumnCount!=0){
+    if (selectedColumnCount > 0) {
         for (int i = 0; i < selectedColumnCount; i++) {
-            selectedIndices[i] = atoi(selectedColumns[i] + strlen("header")) - 1;
-    }
-
-    }else{
-        for (int i = 0; i < columnCount; i++) {
+            for (int j = 0; j < headerCount; j++) {
+                if (strcmp(selectedColumns[i], headers[j]) == 0) {
+                    selectedIndices[i] = j;
+                    break;
+                }
+            }
+        }
+    } else {
+        // Se selectedColumns estiver vazio, selecionar todas as colunas
+        for (int i = 0; i < headerCount; i++) {
             selectedIndices[i] = i;
         }
-        selectedColumnCount = columnCount;
-
+        selectedColumnCount = headerCount;
     }
-   
+
     for (int i = 0; i < selectedColumnCount; i++) {
         printf("%s", headers[selectedIndices[i]]);
         if (i < selectedColumnCount - 1) {
@@ -185,9 +206,8 @@ void filterAndPrintCsv(char *csv, char **selectedColumns, int selectedColumnCoun
             row[colIndex++] = token;
             token = strtok(NULL, ",");
         }
-
-        if (applyFilter(row, filters, filterCount)) {
-            //printf("Entrei no apply filters");
+        
+        if (applyFilter(row, filters, filterCount, headers, headerCount)) {
             for (int j = 0; j < selectedColumnCount; j++) {
                 printf("%s", row[selectedIndices[j]]);
                 if (j < selectedColumnCount - 1) {
@@ -195,8 +215,6 @@ void filterAndPrintCsv(char *csv, char **selectedColumns, int selectedColumnCoun
                 }
             }
             printf("\n");
-
-            //break; //POSSIVEL GAMBIARRA
         }
     }
 }
