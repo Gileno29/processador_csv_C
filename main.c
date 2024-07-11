@@ -8,7 +8,7 @@ int main() {
     processCsv(csv, "header1,header3", "header1>1\nheader3<8");
 
     const char csvFilePath[] = "./data.csv";
-    processCsvFile(csvFilePath, "header1","");
+    processCsvFile(csvFilePath, "","header1>l1c1\nheader3>l1c3");
 
     return 0;
 }

@@ -31,11 +31,9 @@ void processCsv(const char csv[], const char selectedColumns[], const char rowFi
     Filter filters[MAX_COLUMNS];
     int filterCount = 0;
     parseFilters(rowFilterDefinitions, filters, &filterCount);
-    //printf("Conteúdo de csvData-copy:\n%s\n", csvCopy);
+
     char *selectedColumnsArray[MAX_COLUMNS];
     int selectedColumnCount = parseSelectedColumns(selectedColumns, selectedColumnsArray);
-    //printf("\n Qunatidade de colunas selecionadas: %c \n", selectedColumnCount);
-    //printf("Estrou na process csv atraves da funcao de leitura");
     filterAndPrintCsv(csvCopy, selectedColumnsArray, selectedColumnCount, filters, filterCount);
 
     free(csvCopy);
@@ -101,6 +99,10 @@ void parseFilters(const char *rowFilterDefinitions, Filter *filters, int *filter
 }
 
 int parseSelectedColumns(const char *selectedColumns, char **columns) {
+    if (selectedColumns == NULL || strlen(selectedColumns) == 0) {
+        // selectedColumns is empty, return 0
+        return 0;
+    }
     int count = 0;
     char *columnsCopy = strdup(selectedColumns);
     char *column = strtok(columnsCopy, ",");
@@ -154,10 +156,19 @@ void filterAndPrintCsv(char *csv, char **selectedColumns, int selectedColumnCoun
     }
 
     int selectedIndices[MAX_COLUMNS];
-    for (int i = 0; i < selectedColumnCount; i++) {
-        selectedIndices[i] = atoi(selectedColumns[i] + strlen("header")) - 1;
+    if(selectedColumnCount!=0){
+        for (int i = 0; i < selectedColumnCount; i++) {
+            selectedIndices[i] = atoi(selectedColumns[i] + strlen("header")) - 1;
     }
 
+    }else{
+        for (int i = 0; i < columnCount; i++) {
+            selectedIndices[i] = i;
+        }
+        selectedColumnCount = columnCount;
+
+    }
+   
     for (int i = 0; i < selectedColumnCount; i++) {
         printf("%s", headers[selectedIndices[i]]);
         if (i < selectedColumnCount - 1) {
